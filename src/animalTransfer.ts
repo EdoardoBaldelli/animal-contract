@@ -185,15 +185,13 @@ export class AnimalContract extends Contract {
   }
 
   @Transaction(false)
-  public async GetAnimalHistory(ctx, id: string) {
+  public async GetAnimalHistory(ctx: Context, id: string) {
     let resultsIterator = await ctx.stub.getHistoryForKey(id);
     let results = await this._GetAllResults(resultsIterator, true);
 
     return JSON.stringify(results);
   }
 
-  @Transaction(false)
-  @Returns("string")
   public async _GetAllResults(iterator, isHistory) {
     let allResults = [];
     let res = await iterator.next();
