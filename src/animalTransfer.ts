@@ -11,7 +11,7 @@ import {
 } from "fabric-contract-api";
 import stringify from "json-stringify-deterministic";
 import sortKeysRecursive from "sort-keys-recursive";
-import { Animal } from "./animal";
+import { Animal, Owner } from "./animal";
 
 @Info({
   title: "AniamlTransfer",
@@ -19,40 +19,8 @@ import { Animal } from "./animal";
 })
 export class AnimalContract extends Contract {
   @Transaction()
-  public async InitLedger(ctx: Context): Promise<void> {
-    const animals: Animal[] = [
-      {
-        ID: "1",
-        bread: "cane",
-        name: "edo",
-        type: "bull",
-        birthDate: "1994",
-        description: "cane buono",
-        peedigree: "true",
-      },
-      {
-        ID: "2",
-        bread: "cane",
-        name: "edo",
-        type: "bull",
-        birthDate: "1994",
-        description: "cane buono",
-        peedigree: "true",
-      },
-    ];
-    for (const animal of animals) {
-      animal.docType = "animal";
-      // example of how to write to world state deterministically
-      // use convetion of alphabetic order
-      // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
-      // when retrieving data, in any lang, the order of data will be the same and consequently also the corresonding hash
-      await ctx.stub.putState(
-        animal.ID,
-        Buffer.from(stringify(sortKeysRecursive(animal)))
-      );
-      console.info(`Animal ${animal.ID} initialized`);
-    }
-  }
+  public async InitLedger(ctx: Context): Promise<void> {}
+
   @Transaction()
   public async CreateAnimal(
     ctx: Context,
@@ -62,7 +30,10 @@ export class AnimalContract extends Contract {
     bread: string,
     birthDate: string,
     description: string,
-    peedigree: string
+    peedigree: string,
+    ownerId: string,
+    ownerName: string,
+    ownerLastname: string
   ) {
     const exist = await this.AnimalExist(ctx, id);
     if (exist) {
@@ -76,6 +47,9 @@ export class AnimalContract extends Contract {
       birthDate: birthDate,
       description: description,
       peedigree: peedigree,
+      ownerId: ownerId,
+      ownerName: ownerName,
+      ownerLastname: ownerLastname,
     };
 
     await ctx.stub.putState(
@@ -98,10 +72,7 @@ export class AnimalContract extends Contract {
     const animal = JSON.parse(animalString) as Animal;
     animal.name = newName;
 
-    return ctx.stub.putState(
-      id,
-      Buffer.from(stringify(sortKeysRecursive(animal)))
-    );
+    return ctx.stub.putState(id, Buffer.from(stringify(animal)));
   }
 
   @Transaction(false)
@@ -223,5 +194,73 @@ export class AnimalContract extends Contract {
     }
     iterator.close();
     return allResults;
+  }
+
+  @Transaction(false)
+  public async GetAnimalByName(ctx: Context, name: string): Promise<string> {
+    const allResults = [];
+    const iterator = await ctx.stub.getQueryResult(name);
+    let result = await iterator.next();
+    while (!result.done) {
+      const strValue = Buffer.from(result.value.value.toString()).toString(
+        "utf8"
+      );
+      let record;
+      try {
+        record = JSON.parse(strValue);
+      } catch (err) {
+        console.log(err);
+        record = strValue;
+      }
+      allResults.push(record);
+      result = await iterator.next();
+    }
+    return JSON.stringify(allResults);
+  }
+
+  @Transaction(false)
+  public async GetAnimalByOwner(
+    ctx: Context,
+    ownerId: string
+  ): Promise<string> {
+    const allResults = [];
+    const iterator = await ctx.stub.getQueryResult(ownerId);
+    let result = await iterator.next();
+    while (!result.done) {
+      const strValue = Buffer.from(result.value.value.toString()).toString(
+        "utf8"
+      );
+      let record;
+      try {
+        record = JSON.parse(strValue);
+      } catch (err) {
+        console.log(err);
+        record = strValue;
+      }
+      allResults.push(record);
+      result = await iterator.next();
+    }
+    return JSON.stringify(allResults);
+  }
+
+  @Transaction()
+  public async ChangeOwner(
+    ctx: Context,
+    id: string,
+    newOwnerId: string,
+    newOwnerName: string,
+    newOwnerLastname: string
+  ): Promise<void> {
+    const exists = await this.AnimalExist(ctx, id);
+    if (!exists) {
+      throw new Error(`The animal ${id} does not exist`);
+    }
+    const animalString = await this.ReadAnimal(ctx, id);
+    const animal = JSON.parse(animalString) as Animal;
+    animal.owner.ownerId = newOwnerId;
+    animal.owner.ownerLastname = newOwnerLastname;
+    animal.owner.ownerName = newOwnerName;
+
+    return ctx.stub.putState(id, Buffer.from(stringify(animal)));
   }
 }

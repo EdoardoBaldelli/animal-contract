@@ -4,7 +4,6 @@ import { BlockchainServiceInterface } from "../fabric/interface/BlockchainServic
 import { getBlockchainService } from "../common/ServiceFactory";
 import config from "../../config/Config";
 import { TextDecoder } from "util";
-import { Any } from "typeorm";
 
 export class AnimalContractService implements AnimalContractServiceInterface {
   private blockchainService: BlockchainServiceInterface =
@@ -26,6 +25,9 @@ export class AnimalContractService implements AnimalContractServiceInterface {
           animal.birthDate.toString(),
           animal.description,
           String(animal.pedigree),
+          animal.ownerId,
+          animal.ownerName,
+          animal.ownerLastname,
         ],
       });
 
@@ -38,16 +40,19 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async updateAnimalName(id: string, name: string): Promise<string> {
+  async updateAnimalName(_id: string, name: string): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const commit = await contract.submitAsync("UpdateAnimalName", {
-        arguments: [id, name],
+        arguments: [_id, name],
       });
+      console.log(
+        "questi qui sono gli argomenti per cambiare nome: " + arguments
+      );
       const resultJson = this.utf8Decoder.decode(commit.getResult());
-
+      console.log(resultJson);
       return commit.getTransactionId();
     } catch (error) {
       console.log("Error during the animal name update with message: ", error);
@@ -55,13 +60,24 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async updateAnimal(id: string, animal: Animal): Promise<string> {
+  async updateAnimal(_id: string, animal: Animal): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const commit = await contract.submitAsync(`UpdateAnimal`, {
-        arguments: [id, String(animal)],
+        arguments: [
+          _id,
+          animal.name,
+          animal.type,
+          animal.breed,
+          animal.birthDate.toString(),
+          animal.description,
+          String(animal.pedigree),
+          animal.ownerId,
+          animal.ownerName,
+          animal.ownerLastname,
+        ],
       });
       const resultJson = this.utf8Decoder.decode(commit.getResult());
 
@@ -72,13 +88,13 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async deleteAnimal(id: string): Promise<void> {
+  async deleteAnimal(_id: string): Promise<void> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const commit = await contract.submitAsync(`DeleteAnimal`, {
-        arguments: [id],
+        arguments: [_id],
       });
     } catch (error) {
       console.log("erorre durante la delete", error);
@@ -86,7 +102,7 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async getAllAnimals(): Promise<string> {
+  async getAllAnimal(): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
@@ -102,13 +118,13 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async readAnimal(id: string): Promise<string> {
+  async readAnimal(_id: string): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const commit = await contract.submitAsync(`ReadAnimal`, {
-        arguments: [id],
+        arguments: [_id],
       });
       const resultJson = this.utf8Decoder.decode(commit.getResult());
       return commit.getTransactionId();
@@ -118,13 +134,13 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async animalExist(id: string): Promise<string> {
+  async animalExist(_id: string): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const commit = await contract.submitAsync(`AnimalExist`, {
-        arguments: [id],
+        arguments: [_id],
       });
       const resultJson = this.utf8Decoder.decode(commit.getResult());
       return commit.getTransactionId();
@@ -134,19 +150,82 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     }
   }
 
-  async animalHistory(id: string): Promise<string> {
+  async animalHistory(_id: string): Promise<string> {
     const gateway = await this.blockchainService.connect();
     const network = gateway.getNetwork(config.fabric.channel.name);
     const contract = network.getContract(config.fabric.chaincode.name);
     try {
       const resultBytes = await contract.evaluateTransaction(
         "GetAnimalHistory",
-        id
+        _id
       );
       const resultJson = this.utf8Decoder.decode(resultBytes);
       return JSON.stringify(JSON.parse(resultJson));
     } catch (error) {
       console.log("Error during the animal name update with message: ", error);
+      throw error;
+    }
+  }
+
+  async getAnimalByName(animalName: string): Promise<Animal> {
+    const gateway = await this.blockchainService.connect();
+    const network = gateway.getNetwork(config.fabric.channel.name);
+    const contract = network.getContract(config.fabric.chaincode.name);
+    try {
+      const resultBytes = await contract.evaluateTransaction(
+        "GetAnimalByName",
+        `{"selector":{"name": "${animalName}"} }`
+      );
+      const resultJson = this.utf8Decoder.decode(resultBytes);
+      return JSON.parse(resultJson) as Animal;
+    } catch (error) {
+      console.log("Error during the animal name update with message: ", error);
+      throw error;
+    }
+  }
+
+  private prettyJSONString(inputString) {
+    return JSON.stringify(JSON.parse(inputString), null, 2);
+  }
+
+  async getAnimalByOwner(ownerId: string): Promise<Animal> {
+    const gateway = await this.blockchainService.connect();
+    const network = gateway.getNetwork(config.fabric.channel.name);
+    const contract = network.getContract(config.fabric.chaincode.name);
+    try {
+      const resultBytes = await contract.evaluateTransaction(
+        "GetAnimalByOwner",
+        `{"selector":{"ownerId": "${ownerId}"} }`
+      );
+      const resultJson = this.utf8Decoder.decode(resultBytes);
+      return JSON.parse(resultJson) as Animal;
+    } catch (error) {
+      console.log(
+        "Error during the get of animal by name with message: ",
+        error
+      );
+      throw error;
+    }
+  }
+
+  async changeOwner(
+    _id: string,
+    ownerId: string,
+    ownerName: string,
+    ownerLastname: string
+  ): Promise<string> {
+    const gateway = await this.blockchainService.connect();
+    const network = gateway.getNetwork(config.fabric.channel.name);
+    const contract = network.getContract(config.fabric.chaincode.name);
+    try {
+      const commit = await contract.submitAsync("ChangeOwner", {
+        arguments: [_id, ownerId, ownerLastname, ownerName],
+      });
+      const resultJson = this.utf8Decoder.decode(commit.getResult());
+      console.log(resultJson);
+      return commit.getTransactionId();
+    } catch (error) {
+      console.log("Error during the change of the owner with message: ", error);
       throw error;
     }
   }

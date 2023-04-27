@@ -25,6 +25,9 @@ export class Animal {
 
   @Property()
   public peedigree: string;
+
+  @Property()
+  public owner: Owner;
 }
 
 @Object()
@@ -33,11 +36,11 @@ export class Owner {
   public docType?: string;
 
   @Property()
-  public Id: string;
+  public ownerId: string;
 
   @Property()
-  public Name: string;
+  public ownerName: string;
 
   @Property()
-  public Surname: string;
+  public ownerLastname: string;
 }

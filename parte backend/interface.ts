@@ -8,5 +8,13 @@ export interface AnimalContractServiceInterface {
   getAllAnimal(): Promise<string>;
   readAnimal(id: string): Promise<string>;
   animalExist(id: string): Promise<string>;
-  getAnimalHistory(id: string): Promise<string>;
+  animalHistory(id: string): Promise<string>;
+  getAnimalByName(animalName: string): Promise<Animal>;
+  getAnimalByOwner(ownerId: string): Promise<Animal>;
+  changeOwner(
+    id: string,
+    ownerId: string,
+    ownerLastname,
+    ownerName
+  ): Promise<string>;
 }
