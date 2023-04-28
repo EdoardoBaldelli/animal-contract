@@ -39,8 +39,8 @@ export class Owner {
   public ownerId: string;
 
   @Property()
-  public ownerName: string;
+  public oName: string;
 
   @Property()
-  public ownerLastname: string;
+  public oLastname: string;
 }

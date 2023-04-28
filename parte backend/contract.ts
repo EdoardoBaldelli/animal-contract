@@ -80,7 +80,7 @@ export class AnimalContractService implements AnimalContractServiceInterface {
         ],
       });
       const resultJson = this.utf8Decoder.decode(commit.getResult());
-
+      console.log(resultJson);
       return commit.getTransactionId();
     } catch (error) {
       console.log("Errore durante l update dell animale", error);
@@ -195,15 +195,12 @@ export class AnimalContractService implements AnimalContractServiceInterface {
     try {
       const resultBytes = await contract.evaluateTransaction(
         "GetAnimalByOwner",
-        `{"selector":{"ownerId": "${ownerId}"} }`
+        `{"selector":{"owner_id": "${ownerId}"} }`
       );
       const resultJson = this.utf8Decoder.decode(resultBytes);
       return JSON.parse(resultJson) as Animal;
     } catch (error) {
-      console.log(
-        "Error during the get of animal by name with message: ",
-        error
-      );
+      console.log("Error during the animal name update with message: ", error);
       throw error;
     }
   }

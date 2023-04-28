@@ -31,9 +31,9 @@ export class AnimalContract extends Contract {
     birthDate: string,
     description: string,
     peedigree: string,
-    ownerId: string,
-    ownerName: string,
-    ownerLastname: string
+    Id: string,
+    oName: string,
+    oLastname: string
   ) {
     const exist = await this.AnimalExist(ctx, id);
     if (exist) {
@@ -47,9 +47,9 @@ export class AnimalContract extends Contract {
       birthDate: birthDate,
       description: description,
       peedigree: peedigree,
-      ownerId: ownerId,
-      ownerName: ownerName,
-      ownerLastname: ownerLastname,
+      Id: Id,
+      oName: oName,
+      oLastname: oLastname,
     };
 
     await ctx.stub.putState(
@@ -100,7 +100,10 @@ export class AnimalContract extends Contract {
     bread: string,
     birthDate: string,
     description: string,
-    peedigree: boolean
+    peedigree: boolean,
+    Id: string,
+    oName: string,
+    oLastname: string
   ): Promise<void> {
     const exists = await this.AnimalExist(ctx, id);
     if (!exists) {
@@ -115,6 +118,9 @@ export class AnimalContract extends Contract {
       birthDate: birthDate,
       description: description,
       peedigree: peedigree,
+      Id: Id,
+      oName: oName,
+      oLastname: oLastname,
     };
 
     return ctx.stub.putState(
@@ -224,6 +230,7 @@ export class AnimalContract extends Contract {
     ownerId: string
   ): Promise<string> {
     const allResults = [];
+
     const iterator = await ctx.stub.getQueryResult(ownerId);
     let result = await iterator.next();
     while (!result.done) {
@@ -247,20 +254,21 @@ export class AnimalContract extends Contract {
   public async ChangeOwner(
     ctx: Context,
     id: string,
-    newOwnerId: string,
-    newOwnerName: string,
-    newOwnerLastname: string
+    newId: string,
+    newOwName: string,
+    newOwLastname: string
   ): Promise<void> {
     const exists = await this.AnimalExist(ctx, id);
     if (!exists) {
       throw new Error(`The animal ${id} does not exist`);
     }
-    const animalString = await this.ReadAnimal(ctx, id);
-    const animal = JSON.parse(animalString) as Animal;
-    animal.owner.ownerId = newOwnerId;
-    animal.owner.ownerLastname = newOwnerLastname;
-    animal.owner.ownerName = newOwnerName;
 
-    return ctx.stub.putState(id, Buffer.from(stringify(animal)));
+    const updatedOwner: Owner = {
+      ownerId: newId,
+      oName: newOwName,
+      oLastname: newOwLastname,
+    };
+
+    return ctx.stub.putState(id, Buffer.from(stringify(updatedOwner)));
   }
 }

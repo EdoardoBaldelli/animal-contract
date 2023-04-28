@@ -31,7 +31,7 @@ export default function animalHandler(server, options, next) {
 
   server.get("/:owner_id/owner", async (req, res) => {
     req.log.info("get animals with same owner to db");
-    const owner = req.params.owner_id;
+    const owner = req.params.ownerId;
     const animal = await server.db.animals.findOne(owner);
 
     res
@@ -82,21 +82,16 @@ export default function animalHandler(server, options, next) {
   server.put("/:_id/owner", async (req, res) => {
     req.log.info("Update animal owner to db");
     const _id = req.params._id;
-    const Owner = {
-      Id: req.body.ownerId,
-      lastName: req.body.ownerLastname,
-      name: req.body.ownerName,
-    };
     const animal = await server.db.animals.findOne(req.params._id);
     animal.transactionHash = await getAnimalContractService().changeOwner(
       animal._id,
-      Owner.Id,
-      Owner.lastName,
-      Owner.name
+      req.body.ownerId,
+      req.body.ownerLastname,
+      req.body.ownerName
     );
-    animal.ownerId = Owner.Id;
-    animal.ownerLastname = Owner.lastName;
-    animal.ownerName = Owner.name;
+    animal.ownerId = req.body.ownerId;
+    animal.ownerLastname = req.body.ownerLastname;
+    animal.ownerName = req.body.ownerName;
     const animals = await server.db.animals.save({ _id, ...animal });
     res.status(200).send(animals);
   });

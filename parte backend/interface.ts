@@ -14,7 +14,7 @@ export interface AnimalContractServiceInterface {
   changeOwner(
     id: string,
     ownerId: string,
-    ownerLastname,
-    ownerName
+    ownerLastname: string,
+    ownerName: string
   ): Promise<string>;
 }
